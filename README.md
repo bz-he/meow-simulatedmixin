@@ -8,6 +8,6 @@
 
 使用/meow query 查看当前最大数量限制
 
-使用/meow set <size> 修改最大数量限制
+使用/meow set "size" 修改最大数量限制
 
 默认最大方块数量限制为1000。
