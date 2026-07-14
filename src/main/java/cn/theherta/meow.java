@@ -15,7 +15,5 @@ public class meow {
     public meow(IEventBus modEventBus, ModContainer modContainer) {
         // 注册服务端配置（文件位于服务端的 config/meow-server.toml）
         modContainer.registerConfig(ModConfig.Type.SERVER, Config.SPEC);
-
-        LOGGER.info("物理组装限制模组已加载，仅服务端运行。");
     }
 }

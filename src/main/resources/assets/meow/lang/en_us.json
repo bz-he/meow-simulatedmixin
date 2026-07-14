@@ -5,9 +5,6 @@
 
   "meow.configuration.title": "meow Configs",
   "meow.configuration.section.meow.common.toml": "meow Configs",
-  "meow.configuration.section.meow.common.toml.title": "meow Configs",
-  "meow.configuration.items": "Item List",
-  "meow.configuration.logDirtBlock": "Log Dirt Block",
-  "meow.configuration.magicNumberIntroduction": "Magic Number Text",
-  "meow.configuration.magicNumber": "Magic Number"
+  "meow.configuration.section.meow.common.toml.title": "meow Configs"
+
 }
