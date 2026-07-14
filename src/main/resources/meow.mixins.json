@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "cn.theherta.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "AssemblePacketMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

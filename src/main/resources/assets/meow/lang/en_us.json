@@ -1,0 +1,13 @@
+{
+  "itemGroup.meow": "Example Mod Tab",
+  "block.meow.example_block": "Example Block",
+  "item.meow.example_item": "Example Item",
+
+  "meow.configuration.title": "meow Configs",
+  "meow.configuration.section.meow.common.toml": "meow Configs",
+  "meow.configuration.section.meow.common.toml.title": "meow Configs",
+  "meow.configuration.items": "Item List",
+  "meow.configuration.logDirtBlock": "Log Dirt Block",
+  "meow.configuration.magicNumberIntroduction": "Magic Number Text",
+  "meow.configuration.magicNumber": "Magic Number"
+}

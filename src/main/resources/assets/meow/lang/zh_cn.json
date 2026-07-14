@@ -1,0 +1,6 @@
+{
+  "meow.configuration.title": "喵·物理组装限制",
+  "meow.configuration.section.meow.server.toml": "服务端配置",
+  "meow.configuration.section.meow.server.toml.title": "物理组装限制设置",
+  "meow.configuration.maxStructureSize": "最大结构尺寸（方块数）"
+}
