@@ -13,21 +13,14 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.neoforged.fml.loading.FMLPaths;
 
 public class ModConfig {
@@ -44,6 +37,9 @@ public class ModConfig {
     private AutoBreakMode autoBreakMode;
     private final Set<Block> autoBreakWhitelist;
     private boolean suppressSave;
+    private String customStateBlockId = "";
+    private Map<String, String> customStateProperties = new HashMap<>();
+    private boolean useCustomState = false;
 
     private ModConfig() {
         this.batchMode = BatchMode.OFF;
@@ -256,6 +252,10 @@ public class ModConfig {
                             }
                         }
 
+                        this.customStateBlockId = data.customStateBlockId != null ? data.customStateBlockId : "";
+                        this.customStateProperties = data.customStateProperties != null ? new HashMap<>(data.customStateProperties) : new HashMap<>();
+                        this.useCustomState = data.useCustomState != null ? data.useCustomState : false;
+
                         if (this.autoBreakWhitelist.isEmpty()) {
                             this.applyDefaultWhitelist();
                         }
@@ -299,6 +299,9 @@ public class ModConfig {
         data.packetsPerBatch = this.getPacketsPerBatch();
         data.autoBreakMode = this.autoBreakMode.name();
         data.autoBreakWhitelist = this.getAutoBreakWhitelistIds();
+        data.customStateBlockId = this.customStateBlockId;
+        data.customStateProperties = new HashMap<>(this.customStateProperties);
+        data.useCustomState = this.useCustomState;
 
         try {
             Path parent = CONFIG_PATH.getParent();
@@ -408,6 +411,50 @@ public class ModConfig {
         this.saveIfAllowed();
     }
 
+
+    public void setCustomBlockState(BlockState state) {
+        if (state == null) {
+            this.customStateBlockId = "";
+            this.customStateProperties.clear();
+        } else {
+            this.customStateBlockId = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
+            this.customStateProperties.clear();
+            for (var entry : state.getValues().entrySet()) {
+                this.customStateProperties.put(entry.getKey().getName(), entry.getValue().toString());
+            }
+        }
+        this.saveIfAllowed();
+    }
+
+    public BlockState getCustomBlockState() {
+        if (this.customStateBlockId.isEmpty()) return null;
+        ResourceLocation id = ResourceLocation.tryParse(this.customStateBlockId);
+        if (id == null) return null;
+        Optional<Block> optBlock = BuiltInRegistries.BLOCK.getOptional(id);
+        if (optBlock.isEmpty()) return null;
+        Block block = optBlock.get();
+        BlockState state = block.defaultBlockState();
+        for (var entry : this.customStateProperties.entrySet()) {
+            Property<?> prop = block.getStateDefinition().getProperty(entry.getKey());
+            if (prop != null) {
+                Optional<?> val = prop.getValue(entry.getValue());
+                if (val.isPresent()) {
+                    state = state.setValue((Property) prop, (Comparable) val.get());
+                }
+            }
+        }
+        return state;
+    }
+
+    public boolean isUseCustomState() {
+        return this.useCustomState;
+    }
+
+    public void setUseCustomState(boolean use) {
+        this.useCustomState = use;
+        this.saveIfAllowed();
+    }
+
     static {
         CONFIG_PATH = FMLPaths.CONFIGDIR.get().resolve("create_block_rotation_menu_wholesale-client.json");
         DEFAULT_WHITELIST_IDS = Arrays.asList("minecraft:bedrock", "minecraft:netherrack", "minecraft:deepslate");
@@ -418,7 +465,8 @@ public class ModConfig {
         OFF,
         GENERAL,
         DRAIN_WATER,
-        FILL;
+        FILL,
+        TEST;
     }
 
     public enum AutoBreakMode {
@@ -434,5 +482,8 @@ public class ModConfig {
         Integer packetsPerBatch;
         String autoBreakMode;
         List<String> autoBreakWhitelist;
+        String customStateBlockId;
+        Map<String, String> customStateProperties;
+        Boolean useCustomState;
     }
 }

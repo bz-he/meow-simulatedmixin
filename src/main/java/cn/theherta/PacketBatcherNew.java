@@ -32,7 +32,7 @@ public enum PacketBatcherNew {
     private ScheduledExecutorService executor;
     private boolean isSending = false;
 
-    private enum FluidType { WATER, LAVA, WATERLOGGED }
+    private enum FluidType { WATER, LAVA, WATERLOGGED, TEST }
 
     private int getBatchSize() {
         return ModConfig.getInstance().getPacketsPerBatch();
@@ -50,6 +50,27 @@ public enum PacketBatcherNew {
                 this.drainFluidArea(start, end);
             } else if (batchMode == BatchMode.FILL) {
                 this.fillArea(start, end);
+            } else if (batchMode == BatchMode.TEST) {
+                BlockState customState = ModConfig.getInstance().getCustomBlockState();
+                if (customState == null) {
+                    this.mc.player.sendSystemMessage(Component.literal("没有保存的自定义状态！请先编辑。"));
+                    return;
+                }
+                this.originalTargetState = customState;
+                this.successCount = 0;
+                this.skippedCount = 0;
+                this.taskQueue.clear();
+                BlockPos.betweenClosedStream(
+                        Math.min(start.getX(), end.getX()), Math.min(start.getY(), end.getY()), Math.min(start.getZ(), end.getZ()),
+                        Math.max(start.getX(), end.getX()), Math.max(start.getY(), end.getY()), Math.max(start.getZ(), end.getZ())
+                ).forEach((pos) -> {
+                    BlockState currentState = this.mc.level.getBlockState(pos);
+                    if (currentState.is(this.originalTargetState.getBlock())) {
+                        this.taskQueue.add(new BlockPos(pos.getX(), pos.getY(), pos.getZ()));
+                    }
+                });
+                this.mc.player.sendSystemMessage(Component.literal("已加入队列（" + this.taskQueue.size() + "个）"));
+                this.startBatchSending(false, false, false);
             } else if (start != null && end != null && originalData != null && originalData instanceof BlockState) {
                 BlockState state = (BlockState) originalData;
                 if (this.isSending && this.executor != null) {
@@ -74,7 +95,7 @@ public enum PacketBatcherNew {
                     }
                 });
                 this.mc.player.sendSystemMessage(Component.literal("已加入队列（" + this.taskQueue.size() + "个）"));
-                this.startBatchSending(false, false);
+                this.startBatchSending(false, false, false);
             }
         }
     }
@@ -181,14 +202,14 @@ public enum PacketBatcherNew {
     }
 
     private void startWaterDraining() {
-        this.startBatchSending(true, false);
+        this.startBatchSending(true, false, false);
     }
 
     private void startFillSending() {
-        this.startBatchSending(false, true);
+        this.startBatchSending(false, true, false);
     }
 
-    private void startBatchSending(boolean isDrainWater, boolean isFill) {
+    private void startBatchSending(boolean isDrainWater, boolean isFill, boolean isTest) {
         this.isSending = true;
         this.executor = Executors.newSingleThreadScheduledExecutor();
         int[] totalBatches = new int[]{0};
@@ -213,7 +234,9 @@ public enum PacketBatcherNew {
                     if (this.mc.player != null && this.mc.level != null) {
                         this.mc.execute(() -> {
                             for (BlockPos pos : batch) {
-                                if (isFill) {
+                                if (isTest) {
+                                    this.processTest(pos);
+                                } else if (isFill) {
                                     this.processFill(pos);
                                 } else if (isDrainWater) {
                                     this.processFluidDrain(pos);
@@ -328,6 +351,26 @@ public enum PacketBatcherNew {
             System.out.println("Fill packet state: " + targetState);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private void processTest(BlockPos pos) {
+        try {
+            BlockState currentState = this.mc.level.getBlockState(pos);
+            if (!currentState.is(Blocks.COCOA)) {
+                ++this.skippedCount;
+                return;
+            }
+
+            // 设置 age = 2 (成熟)
+            BlockState targetState = currentState.setValue(BlockStateProperties.AGE_2, 2);
+            RadialWrenchMenuSubmitPacket packet = new RadialWrenchMenuSubmitPacket(pos, targetState);
+            PacketDistributor.sendToServer(packet, new CustomPacketPayload[0]);
+            ++this.successCount;
+            System.out.println("Test packet state: " + targetState);
+        } catch (Exception e) {
+            e.printStackTrace();
+            ++this.skippedCount;
         }
     }
 

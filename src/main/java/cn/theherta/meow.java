@@ -35,6 +35,7 @@ public class meow {
     private void registerKeyMappings(RegisterKeyMappingsEvent event) {
         event.register(Submitchange_batchpacket.CONFIG_KEY);
         event.register(Submitchange_batchpacket.RESEND_LAST_PACKET_KEY);
+        event.register(Submitchange_batchpacket.CUSTOM_STATE_EDITOR_KEY);
     }
 
     private void onRegisterCommands(RegisterCommandsEvent event) {

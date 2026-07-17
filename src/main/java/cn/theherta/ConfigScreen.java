@@ -41,7 +41,8 @@ public class ConfigScreen extends Screen {
                 case OFF -> BatchMode.GENERAL;
                 case GENERAL -> BatchMode.DRAIN_WATER;
                 case DRAIN_WATER -> BatchMode.FILL;
-                case FILL -> BatchMode.OFF;
+                case FILL -> BatchMode.TEST;
+                case TEST -> BatchMode.OFF;
             };
             config.setBatchMode(newMode);
             button.setMessage(Component.literal("批量方块旋转菜单: " + getBatchModeText(newMode)));
@@ -62,10 +63,16 @@ public class ConfigScreen extends Screen {
                     mc.player.sendSystemMessage(Component.literal("批量处理模式已开启（区域排水）！"));
                     mc.player.sendSystemMessage(Component.literal("步骤1：中键点击方块框选区域"));
                     mc.player.sendSystemMessage(Component.literal("步骤2：按" + keyName + "开始排水"));
+                    break;
                 case FILL:
                     mc.player.sendSystemMessage(Component.literal("批量处理模式已开启（区域填充）！"));
                     mc.player.sendSystemMessage(Component.literal("步骤1：中键点击方块框选区域"));
                     mc.player.sendSystemMessage(Component.literal("步骤2：按" + keyName + "开始填充流动流体为源"));
+                    break;
+                case TEST:
+                    mc.player.sendSystemMessage(Component.literal("自定义状态模式已开启！"));
+                    mc.player.sendSystemMessage(Component.literal("按编辑器快捷键打开状态编辑"));
+                    mc.player.sendSystemMessage(Component.literal("框选后按批量快捷键应用保存的状态"));
                     break;
             }
         }).bounds(this.width / 2 - 100, 40, 200, 20).build();
@@ -153,6 +160,7 @@ public class ConfigScreen extends Screen {
             case GENERAL -> "通用";
             case DRAIN_WATER -> "区域排水";
             case FILL -> "区域填充";
+            case TEST -> "自定义状态";
         };
     }
 

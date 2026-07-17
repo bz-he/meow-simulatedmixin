@@ -19,6 +19,11 @@ public class Submitchange_batchpacket {
             299,
             "category.submitchange_batchpacket"
     );
-
+    public static final KeyMapping CUSTOM_STATE_EDITOR_KEY = new KeyMapping(
+            "key.submitchange_batchpacket.custom_editor",
+            Type.KEYSYM,
+            71, // G 键
+            "category.submitchange_batchpacket"
+    );
     // 如果有其他静态方法或字段也保留，但不要有 @Mod 注解
 }
