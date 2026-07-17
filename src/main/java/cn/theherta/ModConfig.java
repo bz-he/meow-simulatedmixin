@@ -417,7 +417,8 @@ public class ModConfig {
     public enum BatchMode {
         OFF,
         GENERAL,
-        DRAIN_WATER;
+        DRAIN_WATER,
+        FILL;
     }
 
     public enum AutoBreakMode {

@@ -39,6 +39,9 @@ public class ClientEventHandler {
                 if (batchMode == BatchMode.DRAIN_WATER) {
                     mc.player.sendSystemMessage(Component.literal("开始区域排水..."));
                     PacketBatcherNew.INSTANCE.sendBatchPackets(AreaSelectionManager.INSTANCE.getSelectionStart(), AreaSelectionManager.INSTANCE.getSelectionEnd(), (Object)null);
+                } else if (batchMode == BatchMode.FILL) {
+                    mc.player.sendSystemMessage(Component.literal("开始区域填充..."));
+                    PacketBatcherNew.INSTANCE.sendBatchPackets(AreaSelectionManager.INSTANCE.getSelectionStart(), AreaSelectionManager.INSTANCE.getSelectionEnd(), (Object)null);
                 } else {
                     if (ModConfig.getInstance().getLastSavedPacketState() == null) {
                         mc.player.sendSystemMessage(Component.literal("没有保存的数据包！请先使用方块旋转菜单保存数据包。"));
