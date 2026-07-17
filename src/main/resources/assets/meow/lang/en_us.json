@@ -5,6 +5,10 @@
 
   "meow.configuration.title": "meow Configs",
   "meow.configuration.section.meow.common.toml": "meow Configs",
-  "meow.configuration.section.meow.common.toml.title": "meow Configs"
+  "meow.configuration.section.meow.common.toml.title": "meow Configs",
+
+  "key.submitchange_batchpacket.start": "Start Batch Mode",
+  "key.submitchange_batchpacket.resend": "Apply Last Saved Packet",
+  "category.submitchange_batchpacket": "Create:Block Rotation Menu Wholesale"
 
 }

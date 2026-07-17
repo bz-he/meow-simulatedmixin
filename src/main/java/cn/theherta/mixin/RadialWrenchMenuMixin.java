@@ -5,6 +5,8 @@
 
 package cn.theherta.mixin;
 
+import cn.theherta.ModConfig;
+import cn.theherta.PacketBatcherNew;
 import com.simibubi.create.content.contraptions.wrench.RadialWrenchMenu;
 import java.util.List;
 import net.minecraft.client.Minecraft;

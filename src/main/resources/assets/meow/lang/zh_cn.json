@@ -2,5 +2,9 @@
   "meow.configuration.title": "喵·物理组装限制",
   "meow.configuration.section.meow.server.toml": "服务端配置",
   "meow.configuration.section.meow.server.toml.title": "物理组装限制设置",
-  "meow.configuration.maxStructureSize": "最大结构尺寸（方块数）"
+  "meow.configuration.maxStructureSize": "最大结构尺寸（方块数）",
+
+  "key.submitchange_batchpacket.config": "打开配置界面",
+  "key.submitchange_batchpacket.resend": "应用上次保存的数据包",
+  "category.submitchange_batchpacket": "机械动力:方块旋转菜单批发"
 }
