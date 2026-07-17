@@ -1,0 +1,227 @@
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by FernFlower decompiler)
+//
+
+package cn.theherta;
+
+import com.simibubi.create.content.contraptions.wrench.RadialWrenchMenuSubmitPacket;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.neoforged.neoforge.network.PacketDistributor;
+import cn.theherta.ModConfig.BatchMode;
+
+public enum PacketBatcherNew {
+    INSTANCE;
+
+    private final Queue<BlockPos> taskQueue = new LinkedList();
+    private BlockState originalTargetState;
+    private int successCount = 0;
+    private int skippedCount = 0;
+    private Minecraft mc;
+    private ScheduledExecutorService executor;
+    private boolean isSending = false;
+
+    private int getBatchSize() {
+        return ModConfig.getInstance().getPacketsPerBatch();
+    }
+
+    private long getDelayPerBatch() {
+        return (long)ModConfig.getInstance().getPacketSendDelay();
+    }
+
+    public void sendBatchPackets(BlockPos start, BlockPos end, Object originalData) {
+        this.mc = Minecraft.getInstance();
+        if (this.mc.player != null && this.mc.level != null) {
+            ModConfig.BatchMode batchMode = ModConfig.getInstance().getBatchMode();
+            if (batchMode == BatchMode.DRAIN_WATER) {
+                this.drainWaterArea(start, end);
+            } else if (start != null && end != null && originalData != null && originalData instanceof BlockState) {
+                BlockState state = (BlockState)originalData;
+                if (this.isSending && this.executor != null) {
+                    this.executor.shutdownNow();
+
+                    try {
+                        if (!this.executor.awaitTermination(1L, TimeUnit.SECONDS)) {
+                            this.executor.shutdownNow();
+                        }
+                    } catch (InterruptedException var7) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+
+                this.originalTargetState = state;
+                this.successCount = 0;
+                this.skippedCount = 0;
+                this.taskQueue.clear();
+                BlockPos.betweenClosedStream(Math.min(start.getX(), end.getX()), Math.min(start.getY(), end.getY()), Math.min(start.getZ(), end.getZ()), Math.max(start.getX(), end.getX()), Math.max(start.getY(), end.getY()), Math.max(start.getZ(), end.getZ())).forEach((pos) -> {
+                    BlockState currentState = this.mc.level.getBlockState(pos);
+                    if (currentState.is(this.originalTargetState.getBlock())) {
+                        this.taskQueue.add(new BlockPos(pos.getX(), pos.getY(), pos.getZ()));
+                    }
+
+                });
+                this.mc.player.sendSystemMessage(Component.literal("已加入队列（" + this.taskQueue.size() + "个）"));
+                this.startBatchSending();
+            }
+        }
+    }
+
+    private void drainWaterArea(BlockPos start, BlockPos end) {
+        if (this.isSending && this.executor != null) {
+            this.executor.shutdownNow();
+
+            try {
+                if (!this.executor.awaitTermination(1L, TimeUnit.SECONDS)) {
+                    this.executor.shutdownNow();
+                }
+            } catch (InterruptedException var14) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        this.successCount = 0;
+        this.skippedCount = 0;
+        this.taskQueue.clear();
+        int minX = Math.min(start.getX(), end.getX());
+        int minY = Math.min(start.getY(), end.getY());
+        int minZ = Math.min(start.getZ(), end.getZ());
+        int maxX = Math.max(start.getX(), end.getX());
+        int maxY = Math.max(start.getY(), end.getY());
+        int maxZ = Math.max(start.getZ(), end.getZ());
+
+        for(int y = maxY; y >= minY; --y) {
+            for(int z = minZ; z <= maxZ; ++z) {
+                for(int x = minX; x <= maxX; ++x) {
+                    BlockPos pos = new BlockPos(x, y, z);
+                    BlockState currentState = this.mc.level.getBlockState(pos);
+                    if (currentState.getBlock() == Blocks.WATER) {
+                        this.taskQueue.add(pos);
+                    }
+                }
+            }
+        }
+
+        this.mc.player.sendSystemMessage(Component.literal("开始排水（" + this.taskQueue.size() + "个位置）"));
+        this.startWaterDraining();
+    }
+
+    private void startBatchSending() {
+        this.startBatchSending(false);
+    }
+
+    private void startWaterDraining() {
+        this.startBatchSending(true);
+    }
+
+    private void startBatchSending(boolean isDrainWater) {
+        this.isSending = true;
+        this.executor = Executors.newSingleThreadScheduledExecutor();
+        int[] totalBatches = new int[]{0};
+        int[] completedBatches = new int[]{0};
+        int queueSize = this.taskQueue.size();
+        int batchSize = this.getBatchSize();
+        totalBatches[0] = (queueSize + batchSize - 1) / batchSize;
+        int batchIndex = 0;
+
+        while(!this.taskQueue.isEmpty()) {
+            List<BlockPos> batch = new ArrayList(batchSize);
+
+            for(int i = 0; i < batchSize && !this.taskQueue.isEmpty(); ++i) {
+                BlockPos pos = (BlockPos)this.taskQueue.poll();
+                if (pos != null) {
+                    batch.add(pos);
+                }
+            }
+
+            if (!batch.isEmpty()) {
+                this.executor.schedule(() -> {
+                    if (this.mc.player != null && this.mc.level != null) {
+                        this.mc.execute(() -> {
+                            for(BlockPos pos : batch) {
+                                if (isDrainWater) {
+                                    this.processWaterDrain(pos);
+                                } else {
+                                    this.processSinglePacket(pos);
+                                }
+                            }
+
+                            int var10002 = completedBatches[0]++;
+                            if (completedBatches[0] >= totalBatches[0]) {
+                                this.finishBatchSending();
+                            }
+
+                        });
+                    } else {
+                        int var10002 = completedBatches[0]++;
+                    }
+                }, (long)batchIndex * this.getDelayPerBatch(), TimeUnit.MILLISECONDS);
+                ++batchIndex;
+            }
+        }
+
+    }
+
+    private void finishBatchSending() {
+        this.isSending = false;
+        if (this.executor != null) {
+            this.executor.shutdown();
+            this.executor = null;
+        }
+
+        if (this.mc.player != null) {
+            this.mc.player.sendSystemMessage(Component.literal("处理：" + this.successCount + " | 跳过：" + this.skippedCount));
+        }
+
+    }
+
+    private void processSinglePacket(BlockPos pos) {
+        try {
+            BlockState currentState = this.mc.level.getBlockState(pos);
+            if (!currentState.is(this.originalTargetState.getBlock())) {
+                ++this.skippedCount;
+                return;
+            }
+
+            RadialWrenchMenuSubmitPacket packet = new RadialWrenchMenuSubmitPacket(pos, this.originalTargetState);
+            PacketDistributor.sendToServer(packet, new CustomPacketPayload[0]);
+            ++this.successCount;
+        } catch (Exception var4) {
+        }
+
+    }
+
+    private void processWaterDrain(BlockPos pos) {
+        try {
+            BlockState currentState = this.mc.level.getBlockState(pos);
+            if (currentState.getBlock() != Blocks.WATER) {
+                ++this.skippedCount;
+                return;
+            }
+
+            BlockState waterState = (BlockState)Blocks.WATER.defaultBlockState().setValue(BlockStateProperties.LEVEL, 7);
+            RadialWrenchMenuSubmitPacket packet = new RadialWrenchMenuSubmitPacket(pos, waterState);
+            PacketDistributor.sendToServer(packet, new CustomPacketPayload[0]);
+            ++this.successCount;
+            System.out.println("Drain packet state: " + waterState);
+        } catch (Exception var5) {
+        }
+
+    }
+
+    public void captureOriginalPacket(BlockPos originalPos, BlockState state) {
+        AreaSelectionManager.INSTANCE.setOriginalPacketData(state);
+    }
+}
